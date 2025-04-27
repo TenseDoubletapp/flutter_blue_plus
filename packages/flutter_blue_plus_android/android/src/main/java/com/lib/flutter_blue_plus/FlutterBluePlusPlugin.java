@@ -1607,7 +1607,7 @@ public class FlutterBluePlusPlugin implements
     private boolean isLocationEnabled() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // This is a new method provided in API 28 / Android 9 August 2018
-            LocationManager lm = (LocationManager) activityBinding.getActivity().getSystemService(Context.LOCATION_SERVICE);
+            LocationManager lm = (LocationManager) pluginBinding.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
             return lm.isLocationEnabled();
         } else {
             // This was deprecated in API 28
