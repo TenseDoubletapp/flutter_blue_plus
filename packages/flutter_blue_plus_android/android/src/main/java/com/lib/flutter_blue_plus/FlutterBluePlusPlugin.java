@@ -1611,7 +1611,7 @@ public class FlutterBluePlusPlugin implements
             return lm.isLocationEnabled();
         } else {
             // This was deprecated in API 28
-            int mode = Settings.Secure.getInt(activityBinding.getActivity().getContentResolver(),
+            int mode = Settings.Secure.getInt(pluginBinding.getApplicationContext().getContentResolver(),
                 Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF);
             return mode != Settings.Secure.LOCATION_MODE_OFF;
         }
