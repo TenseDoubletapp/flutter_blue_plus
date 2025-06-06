@@ -500,8 +500,9 @@ public class FlutterBluePlusPlugin implements
                     boolean androidLegacy =             (boolean) data.get("android_legacy");
                     int androidScanMode =                   (int) data.get("android_scan_mode");
                     boolean androidUsesFineLocation =   (boolean) data.get("android_uses_fine_location");
+                    boolean androidCheckLocationServices = (boolean) data.get("android_check_location_services");
 
-                    if (!isLocationEnabled()) {
+                    if (androidCheckLocationServices && !isLocationEnabled()) {
                         result.error("startScan", "Location services are required for Bluetooth scan", null);
                         return;
                     }
@@ -1605,13 +1606,19 @@ public class FlutterBluePlusPlugin implements
     // Check if Android location services are enabled
     @SuppressWarnings("deprecation")
     private boolean isLocationEnabled() {
+        if (Build.VERSION.SDK_INT >= 31) {
+            // Android 12 (October 2021) - location services are not required for BLE scanning
+            return true;
+        }
+
+        Context context = pluginBinding.getApplicationContext();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             // This is a new method provided in API 28 / Android 9 August 2018
-            LocationManager lm = (LocationManager) pluginBinding.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
-            return lm.isLocationEnabled();
+            LocationManager lm = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            return lm != null && lm.isLocationEnabled();
         } else {
             // This was deprecated in API 28
-            int mode = Settings.Secure.getInt(pluginBinding.getApplicationContext().getContentResolver(),
+            int mode = Settings.Secure.getInt(context.getContentResolver(),
                 Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF);
             return mode != Settings.Secure.LOCATION_MODE_OFF;
         }
@@ -2322,11 +2329,13 @@ public class FlutterBluePlusPlugin implements
         // called for both notifications & reads
         public void onCharacteristicReceived(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value, int status)
         {
-            // GATT Service?
-            if (uuidStr(characteristic.getService().getUuid()) == "1800") {
+            // https://www.bluetooth.com/wp-content/uploads/Files/Specification/Assigned_Numbers.html
 
-                // services changed
-                if (uuidStr(characteristic.getUuid()) == "2A05") {
+            // Generic Attribute service 0x1801
+            if (uuidStr(characteristic.getService().getUuid()).equals("1801")) {
+
+                // Service Changed 0x2A05
+                if (uuidStr(characteristic.getUuid()).toUpperCase().equals("2A05")) {
                     HashMap<String, Object> response = bmBluetoothDevice(gatt.getDevice());
                     invokeMethodUIThread("OnServicesReset", response);
                 }

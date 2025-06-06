@@ -22,7 +22,7 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   Stream<BmBluetoothAdapterState> get onAdapterStateChanged {
     return _client.adaptersChanged.where(
       (adapters) {
-        return adapters.length > 0;
+        return adapters.isNotEmpty;
       },
     ).switchMap(
       (adapters) {
@@ -438,7 +438,7 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
     await _initFlutterBluePlus();
 
     return BmBluetoothAdapterName(
-      adapterName: _client.adapters.first.name,
+      adapterName: _client.adapters.firstOrNull?.name ?? '',
     );
   }
 
@@ -449,9 +449,11 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
     await _initFlutterBluePlus();
 
     return BmBluetoothAdapterState(
-      adapterState: _client.adapters.firstOrNull?.powered == true
-          ? BmAdapterStateEnum.on
-          : BmAdapterStateEnum.off,
+      adapterState: switch (_client.adapters.firstOrNull?.powered) {
+        true => BmAdapterStateEnum.on,
+        false => BmAdapterStateEnum.off,
+        _ => BmAdapterStateEnum.unknown,
+      },
     );
   }
 
@@ -520,7 +522,7 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   ) async {
     await _initFlutterBluePlus();
 
-    return _client.adapters.length > 0;
+    return _client.adapters.isNotEmpty;
   }
 
   @override
@@ -776,7 +778,13 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   ) async {
     await _initFlutterBluePlus();
 
-    await _client.adapters.first.setDiscoveryFilter(
+    final adapter = _client.adapters.firstOrNull;
+
+    if (adapter == null) {
+      return false;
+    }
+
+    await adapter.setDiscoveryFilter(
       uuids: request.withServices.map(
         (uuid) {
           return uuid.str128;
@@ -784,7 +792,7 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
       ).toList(),
     );
 
-    await _client.adapters.first.startDiscovery();
+    await adapter.startDiscovery();
 
     return true;
   }
@@ -795,7 +803,13 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   ) async {
     await _initFlutterBluePlus();
 
-    await _client.adapters.first.stopDiscovery();
+    final adapter = _client.adapters.firstOrNull;
+
+    if (adapter == null) {
+      return false;
+    }
+
+    await adapter.stopDiscovery();
 
     return true;
   }
@@ -806,13 +820,15 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   ) async {
     await _initFlutterBluePlus();
 
-    if (_client.adapters.first.powered == true) {
-      await _client.adapters.first.setPowered(false);
+    final adapter = _client.adapters.firstOrNull;
 
-      return true;
+    if (adapter == null || adapter.powered == false) {
+      return false;
     }
 
-    return false;
+    await adapter.setPowered(false);
+
+    return true;
   }
 
   @override
@@ -821,19 +837,21 @@ final class FlutterBluePlusLinux extends FlutterBluePlusPlatform {
   ) async {
     await _initFlutterBluePlus();
 
-    if (_client.adapters.first.powered == false) {
-      await _client.adapters.first.setPowered(true);
+    final adapter = _client.adapters.firstOrNull;
 
-      _onTurnOnResponseController.add(
-        BmTurnOnResponse(
-          userAccepted: true,
-        ),
-      );
-
-      return true;
+    if (adapter == null || adapter.powered == true) {
+      return false;
     }
 
-    return false;
+    await adapter.setPowered(true);
+
+    _onTurnOnResponseController.add(
+      BmTurnOnResponse(
+        userAccepted: true,
+      ),
+    );
+
+    return true;
   }
 
   @override
